@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#031d3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JalScore">
+<title>JalScore - Water Quality Index</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#031d3a;--bg2:#042347;--card:#0a2d52;--card2:#0d3a66;--border:#1565c0;
+  --accent:#29b6f6;--accent2:#0288d1;--text:#e3f2fd;--muted:#90caf9;
+  --good:#66bb6a;--warn:#ffa726;--danger:#ef5350;--pre:#ff9800;--post:#4fc3f7;--r:12px;
+  --f:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+body{background:var(--bg);color:var(--text);font-family:var(--f);min-height:100vh;overflow-x:hidden}
+.hide{display:none!important}
+.page{display:none;min-height:100vh}
+.page.act{display:block}
+/* TOPBAR */
+#tb{position:sticky;top:0;z-index:999;height:54px;background:rgba(3,29,58,.97);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.logo{display:flex;align-items:center;gap:8px;cursor:pointer}
+.logo-ico{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#29b6f6,#0288d1);
+  display:flex;align-items:center;justify-content:center;font-size:17px}
+.logo-en{font-size:15px;font-weight:800;color:var(--accent)}
+.logo-hi{font-size:9px;color:var(--muted)}
+.tbr{display:flex;gap:6px;align-items:center}
+.tbtn{background:var(--card);border:1px solid var(--border);color:var(--text);
+  padding:4px 10px;border-radius:14px;font-size:10px;cursor:pointer;font-weight:700;font-family:var(--f)}
+.tbtn.hl{background:var(--accent2);border-color:var(--accent);color:#fff}
+.upill{display:flex;align-items:center;gap:4px;background:var(--card);
+  border:1px solid var(--border);border-radius:14px;padding:3px 8px;cursor:pointer}
+/* LOGIN */
+#loginPage{min-height:100vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:28px 20px;
+  background:radial-gradient(ellipse at 30% 30%,rgba(41,182,246,.15),transparent 55%),var(--bg)}
+.lbox{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:22px;width:100%;max-width:340px}
+.ltabs{display:flex;gap:5px;margin-bottom:16px}
+.ltab{flex:1;padding:7px;border-radius:7px;text-align:center;font-size:11px;font-weight:700;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);background:transparent;font-family:var(--f)}
+.ltab.act{background:rgba(41,182,246,.15);border-color:var(--accent);color:var(--accent)}
+.lform{display:flex;flex-direction:column;gap:10px}
+.lform label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.fi{background:var(--bg2);border:1px solid var(--border);border-radius:7px;
+  padding:10px 12px;color:var(--text);font-size:14px;font-family:var(--f);width:100%;outline:none}
+.fi:focus{border-color:var(--accent)}
+.fi.ov{border-color:var(--danger)!important}
+.lerr{color:var(--danger);font-size:11px;text-align:center;min-height:16px}
+.lhint{font-size:10px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.8}
+/* LANDING */
+#landingPage{padding:26px 14px 80px;
+  background:radial-gradient(ellipse at 25% 25%,rgba(41,182,246,.12),transparent 55%),var(--bg);
+  display:flex;flex-direction:column;align-items:center;text-align:center}
+.h1{font-size:clamp(34px,9vw,56px);font-weight:800;line-height:1;margin-bottom:4px}
+.ngrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));
+  gap:9px;width:100%;max-width:660px;margin:20px 0}
+.nc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 13px;cursor:pointer;transition:.2s;text-align:left;position:relative;overflow:hidden}
+.nc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.nc:hover{background:var(--card2);border-color:var(--accent);transform:translateY(-2px)}
+.nc-ico{font-size:24px;margin-bottom:7px}
+.nc-t{font-size:12px;font-weight:700;margin-bottom:2px}
+.nc-h{font-size:10px;color:var(--muted);margin-bottom:4px}
+.nc-d{font-size:9px;color:var(--muted);line-height:1.5}
+.nc-c{margin-top:9px;display:inline-block;background:rgba(41,182,246,.12);
+  border:1px solid rgba(41,182,246,.3);color:var(--accent);
+  padding:3px 9px;border-radius:5px;font-size:9px;font-weight:700}
+.nc:hover .nc-c{background:var(--accent);color:#031d3a}
+/* COMMON */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:13px}
+.sec{padding:12px 14px 0;margin-bottom:10px}
+.sec h2{font-size:16px;font-weight:700}
+.sec-s{font-size:10px;color:var(--muted);margin-top:2px}
+.back{display:flex;align-items:center;gap:4px;background:none;border:none;
+  color:var(--muted);cursor:pointer;font-size:11px;font-family:var(--f);padding:0;margin-bottom:7px}
+.back:hover{color:var(--accent)}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(min-width:460px){.fg{grid-template-columns:1fr 1fr 1fr}}
+.fgf{grid-column:1/-1}
+.fl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.05em;margin-bottom:3px;display:block}
+.bh{font-size:8px;color:var(--muted);margin-top:2px}
+.bh.ov{color:var(--danger)}
+.btn{padding:9px 14px;border-radius:8px;font-family:var(--f);font-size:12px;
+  font-weight:700;cursor:pointer;border:none;display:inline-flex;align-items:center;
+  justify-content:center;gap:5px;transition:.18s}
+.bp{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#031d3a;width:100%}
+.bo{background:transparent;border:1px solid var(--border);color:var(--text)}
+.bo:hover{border-color:var(--accent);color:var(--accent)}
+.bs{padding:5px 10px;font-size:10px;border-radius:6px}
+.bd{background:rgba(239,83,80,.1);border:1px solid var(--danger);color:var(--danger)}
+.bg2{background:rgba(102,187,106,.1);border:1px solid var(--good);color:var(--good)}
+/* WQI */
+.wqic{border-radius:var(--r);padding:18px;text-align:center;margin:10px 14px}
+.wqi-n{font-size:62px;font-weight:800;line-height:1}
+.wqi-r{font-size:15px;font-weight:700;margin-top:3px}
+.wqi-h{font-size:11px;opacity:.7;margin-top:2px}
+.wqi-a{font-size:11px;line-height:1.6;margin-top:8px;opacity:.85}
+.re{background:linear-gradient(135deg,#071e0f,#0a2e18);border:1px solid #66bb6a;color:#66bb6a}
+.rg{background:linear-gradient(135deg,#061628,#09213d);border:1px solid #29b6f6;color:#29b6f6}
+.rf{background:linear-gradient(135deg,#281a06,#3a260a);border:1px solid #ffa726;color:#ffa726}
+.rp{background:linear-gradient(135deg,#280606,#3a0a0a);border:1px solid #ef5350;color:#ef5350}
+.ru{background:linear-gradient(135deg,#180303,#260606);border:1px solid #b71c1c;color:#ff6b6b}
+/* PARAMS */
+.pbg{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 14px 12px}
+@media(min-width:460px){.pbg{grid-template-columns:1fr 1fr 1fr}}
+.pbi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:8px}
+.pbi.ov{border-color:var(--danger);background:rgba(239,83,80,.07)}
+.pbn{font-size:8px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.pbv{font-size:13px;font-weight:700;margin-top:2px}
+.pbv.ov{color:var(--danger)}
+.pbb{font-size:8px;color:var(--muted)}
+.pbbar{height:3px;background:var(--bg2);border-radius:2px;margin-top:4px;overflow:hidden}
+.pbf{height:100%;border-radius:2px}
+/* TABS */
+.tabbar{display:flex;border-bottom:1px solid var(--border);margin:0 14px}
+.tab{flex:1;padding:9px 2px;text-align:center;font-size:10px;font-weight:700;
+  cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
+.tab.act{color:var(--accent);border-bottom-color:var(--accent)}
+.tc{display:none;padding-bottom:8px}.tc.act{display:block}
+/* BADGE */
+.sb{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:8px;
+  font-size:8px;font-weight:700}
+.sb.pre{background:rgba(255,152,0,.15);color:var(--pre);border:1px solid rgba(255,152,0,.3)}
+.sb.post{background:rgba(79,195,247,.15);color:var(--post);border:1px solid rgba(79,195,247,.3)}
+/* LIST */
+.vli{display:flex;align-items:center;gap:9px;padding:9px 13px;
+  border-bottom:1px solid rgba(21,101,192,.3);cursor:pointer}
+.vli:hover{background:var(--card2)}
+.vdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.vi{flex:1;min-width:0}
+.vn{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs{font-size:9px;color:var(--muted);margin-top:1px;display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.vw{font-size:14px;font-weight:800;flex-shrink:0}
+.vrat{font-size:8px;font-weight:700;text-transform:uppercase;text-align:right}
+/* SEARCH */
+.sw{display:flex;align-items:center;gap:7px;background:var(--card);
+  border:1px solid var(--border);border-radius:8px;padding:0 11px;margin:9px 14px}
+.sw input{flex:1;background:none;border:none;padding:9px 0;
+  color:var(--text);font-size:13px;font-family:var(--f);outline:none}
+/* CHIPS */
+.fchip{padding:3px 9px;border-radius:12px;font-size:9px;font-weight:700;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--card);display:inline-block}
+.fca{border-color:var(--accent)!important;color:var(--accent)!important;background:rgba(41,182,246,.1)!important}
+.fcp{border-color:var(--pre)!important;color:var(--pre)!important;background:rgba(255,152,0,.1)!important}
+.fcps{border-color:var(--post)!important;color:var(--post)!important;background:rgba(79,195,247,.1)!important}
+/* MAP */
+#mapCont{height:calc(100vh - 54px - 60px - 70px);min-height:300px}
+.leaflet-popup-content-wrapper{background:var(--card)!important;border:1px solid var(--border)!important;border-radius:9px!important;color:var(--text)!important}
+.leaflet-popup-tip{background:var(--card)!important}
+/* DASH */
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 14px 10px}
+.ds{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;text-align:center}
+.dsn{font-size:26px;font-weight:800}
+.dsl{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.stw{display:flex;gap:6px;padding:0 14px 10px}
+.stgl{flex:1;padding:7px;border-radius:8px;text-align:center;font-size:11px;font-weight:700;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--card);font-family:var(--f)}
+.stgl.ap{border-color:var(--pre);color:var(--pre);background:rgba(255,152,0,.1)}
+.stgl.aps{border-color:var(--post);color:var(--post);background:rgba(79,195,247,.1)}
+/* ALERTS */
+.ali{display:flex;gap:9px;padding:9px 11px;background:rgba(239,83,80,.07);
+  border:1px solid rgba(239,83,80,.25);border-radius:8px;margin-bottom:7px;cursor:pointer}
+.ali-t{font-size:11px;font-weight:700;color:var(--danger)}
+.ali-s{font-size:9px;color:var(--muted);margin-top:2px}
+/* UPLOAD */
+.uzw{border:2px dashed var(--border);border-radius:var(--r);padding:22px 14px;
+  text-align:center;cursor:pointer;background:rgba(41,182,246,.03);position:relative}
+.uzw input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.prow{display:flex;align-items:center;gap:6px;padding:6px 0;
+  border-bottom:1px solid rgba(21,101,192,.25);font-size:11px}
+/* NAV */
+#bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(3,29,58,.97);backdrop-filter:blur(12px);
+  border-top:1px solid var(--border);display:none;grid-template-columns:repeat(5,1fr);height:60px}
+#bnav.show{display:grid}
+.ni{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;cursor:pointer;border:none;background:none;color:var(--muted);padding:4px}
+.ni.act{color:var(--accent)}
+.ni svg{width:18px;height:18px}
+.ni span{font-size:8px;font-weight:700;text-transform:uppercase}
+.hnav{padding-bottom:68px}
+/* TOAST */
+#toast{position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:var(--card2);border:1px solid var(--accent);border-radius:8px;
+  padding:8px 16px;font-size:12px;font-weight:600;z-index:9999;
+  opacity:0;transition:.25s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#prog{position:fixed;inset:0;z-index:900;background:rgba(3,29,58,.88);
+  display:none;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+#prog.show{display:flex}
+.spin{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);
+  border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+/* MFBTN */
+.mfb{padding:3px 9px;border-radius:12px;font-size:9px;font-weight:700;
+  cursor:pointer;border:1px solid var(--border);color:var(--muted);display:inline-block}
+.mfb.act{border-color:var(--accent);color:var(--accent);background:rgba(41,182,246,.1)}
+</style>
+</head>
+<body>
+
+<div id="tb" class="hide">
+  <div class="logo" id="logoBtn">
+    <div class="logo-ico">💧</div>
+    <div><div class="logo-en">JalScore</div><div class="logo-hi">जलस्कोर</div></div>
+  </div>
+  <div class="tbr">
+    <div style="display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:3px 9px;cursor:pointer" id="alertBtn">
+      <span>🔔</span><span id="alertCnt" style="font-size:10px;font-weight:700;color:var(--accent)">0</span>
+    </div>
+    <button class="tbtn" id="langBtn">हिंदी</button>
+    <div class="upill" id="userPill">
+      <span id="userIco" style="font-size:13px">👤</span>
+      <div style="margin-left:3px"><div style="font-size:10px;font-weight:700" id="userName">User</div>
+      <div style="font-size:8px;color:var(--muted)" id="userRole">Role</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGIN -->
+<div id="loginPage" class="page act">
+  <div style="font-size:50px;margin-bottom:10px;text-align:center">💧</div>
+  <div style="font-size:24px;font-weight:800;color:var(--accent);text-align:center;margin-bottom:3px">JalScore</div>
+  <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:26px">जलस्कोर — Water Quality Index App</div>
+  <div style="display:flex;justify-content:center">
+  <div class="lbox">
+    <div class="ltabs">
+      <button class="ltab act" id="lt1">Login</button>
+      <button class="ltab" id="lt2">Join with Code</button>
+    </div>
+    <div id="lf1" class="lform">
+      <div><label>Username</label><input type="text" class="fi" id="lu" placeholder="admin" autocomplete="username"></div>
+      <div><label>Password</label><input type="password" class="fi" id="lp" placeholder="admin123" autocomplete="current-password"></div>
+      <div class="lerr" id="lerr"></div>
+      <button class="btn bp" id="loginBtn">Login →</button>
+      <div class="lhint"><b style="color:var(--text)">admin</b>/admin123 · <b style="color:var(--text)">officer</b>/off123<br><b style="color:var(--text)">monitor</b>/mon123 · <b style="color:var(--text)">public</b>/pub123</div>
+    </div>
+    <div id="lf2" class="lform hide">
+      <div><label>Your Name</label><input type="text" class="fi" id="cn" placeholder="Enter your name"></div>
+      <div><label>Join Code</label><input type="text" class="fi" id="cc" placeholder="e.g. FIELD-2024" style="text-transform:uppercase"></div>
+      <div class="lerr" id="cerr"></div>
+      <button class="btn bp" id="joinBtn">Join →</button>
+      <div class="lhint">Get code from Admin or District Monitor</div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- LANDING -->
+<div id="landingPage" class="page hnav">
+  <div style="font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;background:rgba(41,182,246,.12);border:1px solid rgba(41,182,246,.3);padding:4px 14px;border-radius:16px;display:inline-block">🌊 India Water Quality App</div>
+  <h1 class="h1">Jal<span style="color:var(--accent)">Score</span></h1>
+  <div style="font-size:16px;color:var(--muted);margin-bottom:10px">जल गुणवत्ता सूचकांक</div>
+  <p style="font-size:11px;color:var(--muted);max-width:360px;line-height:1.8;margin-bottom:10px">14 Parameters · BIS IS 10500 · Pre & Post Monsoon · Map · Alerts · PDF Reports</p>
+  <div class="ngrid" id="navGrid"></div>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center">
+    <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--accent)" id="statV">0</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Records</div></div>
+    <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--accent)">14</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Parameters</div></div>
+    <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--accent)">BIS</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">IS 10500</div></div>
+    <div style="text-align:center"><div style="font-size:20px;font-weight:800;color:var(--accent)">2×</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase">Seasonal</div></div>
+  </div>
+</div>
+
+<!-- PUBLIC CALC -->
+<div id="publicPage" class="page hnav">
+  <div class="sec"><button class="back" id="pubBack">← Back</button><h2>Quick WQI Calculator</h2><div class="sec-s">Enter lab values · BIS IS 10500</div></div>
+  <div style="padding:0 14px"><div class="card"><p style="font-size:10px;color:var(--muted);margin-bottom:10px">Enter water test values. Leave blank if not tested.</p>
+    <div class="fg" id="pubGrid"></div>
+    <div style="margin-top:11px"><button class="btn bp" id="calcBtn">💧 Calculate WQI</button></div>
+  </div></div>
+  <div id="pubRes"></div><div id="pubBrk"></div>
+</div>
+
+<!-- FIELD -->
+<div id="fieldPage" class="page hnav">
+  <div class="sec"><button class="back" id="fieldBack">← Back</button><h2>Field Data Entry</h2><div class="sec-s">Add village water quality records</div></div>
+  <div class="tabbar">
+    <div class="tab act" id="tm">+ Manual</div>
+    <div class="tab" id="tu">📤 Excel Upload</div>
+    <div class="tab" id="tr">Records</div>
+  </div>
+  <div class="tc act" id="tcm">
+    <div style="padding:10px 14px 0"><div class="card">
+      <div class="fg">
+        <div class="fgf"><label class="fl">Village Name *</label><input class="fi" id="fv" placeholder="e.g. Bhago Majra" type="text"></div>
+        <div><label class="fl">District</label><input class="fi" id="fd" placeholder="Roopnagar" type="text"></div>
+        <div><label class="fl">Block</label><input class="fi" id="fb" placeholder="Block name" type="text"></div>
+        <div><label class="fl">Date</label><input class="fi" id="fdt" type="date"></div>
+        <div><label class="fl">Year</label><input class="fi" id="fy" type="number" placeholder="2024"></div>
+        <div><label class="fl">Source</label><select class="fi" id="fs"><option>Hand Pump</option><option>Tube Well</option><option>Tap Water</option><option>Borewell</option><option>River</option></select></div>
+      </div>
+      <div style="margin-top:10px"><label class="fl">Season</label>
+        <div style="display:flex;gap:7px;margin-top:5px">
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:rgba(255,152,0,.1);border:1px solid rgba(255,152,0,.3);border-radius:8px;padding:7px 10px;flex:1;font-size:11px;font-weight:700;color:var(--pre)">
+            <input type="radio" name="fss" value="Pre-Monsoon" checked>☀️ Pre-Monsoon</label>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:rgba(79,195,247,.1);border:1px solid rgba(79,195,247,.3);border-radius:8px;padding:7px 10px;flex:1;font-size:11px;font-weight:700;color:var(--post)">
+            <input type="radio" name="fss" value="Post-Monsoon">🌧 Post-Monsoon</label>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);margin:11px 0 9px">
+        <p class="fl" style="padding-top:9px;margin-bottom:7px">WATER QUALITY PARAMETERS (BIS IS 10500)</p>
+        <div class="fg" id="fldGrid"></div>
+      </div>
+      <div style="display:flex;gap:7px">
+        <button class="btn bp" id="saveBtn">💾 Save & Calculate</button>
+        <button class="btn bo bs" id="clrBtn">Clear</button>
+      </div>
+    </div></div>
+  </div>
+  <div class="tc" id="tcu">
+    <div style="padding:10px 14px 0"><div class="card">
+      <div class="uzw" id="dz"><input type="file" id="fileInp" accept=".xlsx,.xls,.csv">
+        <div style="font-size:26px;margin-bottom:7px">📊</div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:3px">Upload Excel / CSV</div>
+        <div style="font-size:10px;color:var(--muted)">Tap to browse or drag & drop · .xlsx .xls .csv</div>
+      </div>
+      <div style="margin-top:9px;background:var(--bg2);border-radius:7px;padding:9px;font-size:9px;font-family:monospace;color:var(--accent);line-height:1.9;word-break:break-all">
+        Village | District | Block | Source | Date | Season | Year | pH | Turbidity | TDS | TH | Ca | Mg | Na | K | Fe | ALK | Cl | NO3 | SO4 | F
+      </div>
+      <button class="btn bo bs" id="dlTpl" style="margin-top:9px;width:100%">⬇ Download Template</button>
+    </div>
+    <div id="upPrev" class="card hide" style="margin-top:9px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div><div style="font-size:12px;font-weight:700" id="prevT">Preview</div><div style="font-size:9px;color:var(--muted)" id="prevS"></div></div>
+        <div style="display:flex;gap:5px">
+          <button class="btn bd bs" id="cancelUp">Cancel</button>
+          <button class="btn bg2 bs" id="importBtn">Import All</button>
+        </div>
+      </div>
+      <div id="prevRows"></div>
+    </div></div>
+  </div>
+  <div class="tc" id="tcr">
+    <div class="sw"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="srch" placeholder="Search village, block, district…"></div>
+    <div style="display:flex;gap:5px;padding:0 14px 8px;flex-wrap:wrap">
+      <span class="fchip fca" id="fa">All</span>
+      <span class="fchip" id="fp">☀️ Pre</span>
+      <span class="fchip" id="fps">🌧 Post</span>
+    </div>
+    <div id="vList"></div>
+    <div id="vEmp" class="hide" style="text-align:center;padding:30px">
+      <div style="font-size:28px;margin-bottom:8px">🌊</div>
+      <div style="font-weight:700">No records</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">Add villages in Manual Entry tab</div>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div id="searchPage" class="page hnav">
+  <div class="sec"><button class="back" id="searchBack">← Back</button><h2>Search Villages</h2><div class="sec-s">गाँव खोजें — filter by any criteria</div></div>
+  <div style="padding:0 14px 10px"><div class="card">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div class="sw" style="margin:0"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="sQ" placeholder="Village or block name…"></div>
+      <div class="fg" style="gap:7px">
+        <div><label class="fl">District</label><input class="fi" type="text" id="sD" placeholder="e.g. Roopnagar"></div>
+        <div><label class="fl">Year</label><input class="fi" type="text" id="sY" placeholder="e.g. 2018"></div>
+        <div><label class="fl">Season</label><select class="fi" id="sSn"><option value="all">All Seasons</option><option value="Pre">☀️ Pre-Monsoon</option><option value="Post">🌧 Post-Monsoon</option></select></div>
+        <div><label class="fl">Rating</label><select class="fi" id="sR"><option value="all">All Ratings</option><option value="EXCELLENT">✅ Excellent</option><option value="GOOD">🔵 Good</option><option value="FAIR">⚠️ Fair</option><option value="POOR">❌ Poor</option><option value="UNFIT">☠️ Unfit</option></select></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span id="sCnt" style="font-size:11px;font-weight:700;color:var(--muted)">0 results</span>
+        <button class="btn bo bs" id="sClear">✕ Clear</button>
+      </div>
+    </div>
+  </div>
+  <div id="sRes" style="margin-top:9px"></div></div>
+</div>
+
+<!-- MAP -->
+<div id="mapPage" class="page hnav">
+  <div class="sec" style="margin-bottom:6px"><button class="back" id="mapBack">← Back</button><h2>Village Map</h2></div>
+  <div style="display:flex;gap:5px;padding:0 14px 8px;flex-wrap:wrap">
+    <span class="mfb act" id="mfa">All</span>
+    <span class="mfb" id="mfp">☀️ Pre</span>
+    <span class="mfb" id="mfps">🌧 Post</span>
+    <span class="mfb" style="border-color:var(--danger);color:var(--danger)" id="mfal">⚠ Alerts</span>
+  </div>
+  <div id="mapCont"></div>
+</div>
+
+<!-- DISTRICT -->
+<div id="districtPage" class="page hnav">
+  <div class="sec"><button class="back" id="distBack">← Back</button><h2>District Monitor</h2><div class="sec-s">जिला जल गुणवत्ता निगरानी</div></div>
+  <div class="stw"><button class="stgl ap" id="dpre">☀️ Pre-Monsoon</button><button class="stgl" id="dpost">🌧 Post-Monsoon</button></div>
+  <div class="dg">
+    <div class="ds"><div class="dsn" id="dtot" style="color:var(--accent)">0</div><div class="dsl">Villages</div></div>
+    <div class="ds"><div class="dsn" id="davg" style="color:#81d4fa">—</div><div class="dsl">Avg WQI</div></div>
+    <div class="ds"><div class="dsn" id="dsafe" style="color:var(--good)">0</div><div class="dsl">Safe</div></div>
+    <div class="ds"><div class="dsn" id="dact" style="color:var(--danger)">0</div><div class="dsl">Action Needed</div></div>
+  </div>
+  <div style="padding:0 14px 9px"><div class="card"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Rating Distribution</div><div style="height:170px"><canvas id="pieC"></canvas></div></div></div>
+  <div style="padding:0 14px 9px"><div class="card"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">WQI Rankings</div><div style="height:180px"><canvas id="barC"></canvas></div></div></div>
+  <div style="padding:0 14px 14px"><div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">All Villages</div>
+      <button class="btn bo bs" id="expBtn">Export CSV</button>
+    </div><div id="distList"></div></div></div>
+</div>
+
+<!-- ALERTS -->
+<div id="alertPage" class="page hnav">
+  <div class="sec"><button class="back" id="alertBack">← Back</button><h2>Alerts</h2><div class="sec-s">Unsafe water villages — जल गुणवत्ता चेतावनी</div></div>
+  <div style="padding:0 14px 12px"><div id="aList"></div>
+    <div id="aEmp" class="hide" style="text-align:center;padding:30px">
+      <div style="font-size:32px;margin-bottom:8px">✅</div>
+      <div style="font-weight:700;color:var(--good)">No Alerts — All villages safe!</div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div id="detailPage" class="page hnav">
+  <div class="sec"><button class="back" id="detBack">← Back</button><h2 id="detn">Village</h2><div id="dets" style="margin-top:4px"></div></div>
+  <div id="detRes"></div><div id="detBrk"></div>
+  <div id="detCmp" class="hide" style="padding:0 14px 9px">
+    <div class="card"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Pre vs Post Monsoon Comparison</div><div id="detCmpT"></div></div>
+  </div>
+  <div style="padding:0 14px 14px;display:flex;gap:7px">
+    <button class="btn bo bs" style="flex:1" id="pdfBtn">📄 PDF Report</button>
+    <button class="btn bo bs" style="flex:1" id="shrBtn">📤 Share</button>
+    <button class="btn bd bs" id="delBtn">🗑</button>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminPage" class="page hnav">
+  <div class="sec"><button class="back" id="adminBack">← Back</button><h2>Admin Panel</h2><div class="sec-s">Manage users & join codes</div></div>
+  <div style="padding:0 14px 12px">
+    <div class="card" style="margin-bottom:9px">
+      <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:9px">Create User</div>
+      <div class="fg">
+        <div class="fgf"><label class="fl">Full Name</label><input class="fi" id="anm" placeholder="Name" type="text"></div>
+        <div><label class="fl">Username</label><input class="fi" id="au" placeholder="username" type="text"></div>
+        <div><label class="fl">Password</label><input class="fi" id="ap" placeholder="password" type="password"></div>
+        <div><label class="fl">Role</label><select class="fi" id="ar"><option value="field">Field Officer</option><option value="monitor">Monitor</option><option value="public">Public</option></select></div>
+      </div>
+      <button class="btn bp bs" id="createBtn" style="margin-top:9px;width:100%">+ Create Account</button>
+    </div>
+    <div class="card" style="margin-bottom:9px">
+      <div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:9px">Generate Join Code</div>
+      <div class="fg">
+        <div><label class="fl">Role</label><select class="fi" id="crr"><option value="field">Field Officer</option><option value="monitor">Monitor</option><option value="public">Public</option></select></div>
+        <div><label class="fl">Expires</label><input class="fi" id="cre" type="date"></div>
+      </div>
+      <button class="btn bp bs" id="genBtn" style="margin-top:9px;width:100%">🔑 Generate Code</button>
+      <div id="codeOut" class="hide" style="margin-top:9px;background:rgba(41,182,246,.1);border:1px solid rgba(41,182,246,.3);border-radius:8px;padding:10px;text-align:center">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:3px">Share this code:</div>
+        <div id="codeVal" style="font-size:24px;font-weight:800;color:var(--accent);letter-spacing:.15em"></div>
+      </div>
+    </div>
+    <div class="card"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:9px">Users</div><div id="uList"></div></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div id="bnav">
+  <button class="ni act" id="ni1"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 7H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3m-1-4H9a1 1 0 0 0-1 1v4h8V4a1 1 0 0 0-1-1z"/></svg><span>Check</span></button>
+  <button class="ni" id="ni2"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg><span>Field</span></button>
+  <button class="ni" id="ni3"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><span>Search</span></button>
+  <button class="ni" id="ni4"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>Map</span></button>
+  <button class="ni" id="ni5"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><span>Monitor</span></button>
+</div>
+
+<div id="prog"><div class="spin"></div><div style="font-size:12px;color:var(--muted)" id="progt">Processing…</div></div>
+<div id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+// ── DATA ──────────────────────────────────────────────────────────
+var P=[
+  {k:'pH',e:'pH',h:'पीएच',b:8.5,bl:6.5,w:3,u:'',ph:true},
+  {k:'TY',e:'Turbidity',h:'गंदलापन',b:5,w:3,u:'NTU'},
+  {k:'TDS',e:'TDS',h:'टीडीएस',b:2000,w:5,u:'mg/L'},
+  {k:'TH',e:'Hardness',h:'कठोरता',b:600,w:3,u:'mg/L'},
+  {k:'Ca',e:'Calcium',h:'कैल्शियम',b:200,w:3,u:'mg/L'},
+  {k:'Mg',e:'Magnesium',h:'मैग्नेशियम',b:100,w:3,u:'mg/L'},
+  {k:'Na',e:'Sodium',h:'सोडियम',b:200,w:2,u:'mg/L'},
+  {k:'K',e:'Potassium',h:'पोटेशियम',b:12,w:1,u:'mg/L'},
+  {k:'Fe',e:'Iron',h:'लोहा',b:1.0,w:3,u:'mg/L'},
+  {k:'ALK',e:'Alkalinity',h:'क्षारीयता',b:600,w:4,u:'mg/L'},
+  {k:'Cl',e:'Chloride',h:'क्लोराइड',b:1000,w:4,u:'mg/L'},
+  {k:'NO3',e:'Nitrate',h:'नाइट्रेट',b:45,w:5,u:'mg/L'},
+  {k:'SO4',e:'Sulphate',h:'सल्फेट',b:400,w:3,u:'mg/L'},
+  {k:'F',e:'Fluoride',h:'फ्लोराइड',b:1.5,w:3,u:'mg/L'}
+];
+var SW=P.reduce(function(s,p){return s+p.w;},0);
+var RC={
+  EXCELLENT:{e:'Excellent',h:'उत्कृष्ट',cl:'re',c:'#66bb6a',ea:'SAFE to drink. All BIS limits met.',ha:'पीने के लिए सुरक्षित।'},
+  GOOD:{e:'Good',h:'अच्छा',cl:'rg',c:'#29b6f6',ea:'SAFE to drink. Good quality.',ha:'पीने के लिए सुरक्षित। अच्छी गुणवत्ता।'},
+  FAIR:{e:'Fair — Caution',h:'ठीक — सावधानी',cl:'rf',c:'#ffa726',ea:'NOT safe for drinking. Irrigation only.',ha:'पीने के लिए नहीं। केवल सिंचाई।'},
+  POOR:{e:'Poor — Unsafe',h:'खराब — असुरक्षित',cl:'rp',c:'#ef5350',ea:'UNSAFE. Do NOT use for drinking.',ha:'असुरक्षित। सेवन न करें।'},
+  UNFIT:{e:'Unfit — Danger',h:'अनुपयुक्त',cl:'ru',c:'#ff6b6b',ea:'DANGEROUS. Treat before any use.',ha:'खतरनाक। उपयोग से पहले उपचार करें।'}
+};
+var SEED=[{"id":1,"name":"Mehain Khamera","district":"Roopnagar","block":"Anandpur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":31.2312,"lon":76.5023,"data":{"pH":7.35,"TY":0.8,"TDS":230,"TH":200,"Ca":44.88,"Mg":21.38,"Na":3.0,"K":1.2,"Fe":0.36,"ALK":216,"Cl":24,"NO3":5.39,"SO4":14.41,"F":7.4},"wqi":53.81,"rating":"FAIR"},{"id":2,"name":"Asarpur","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8821,"lon":76.4231,"data":{"pH":8.21,"TY":0.88,"TDS":341,"TH":324,"Ca":33.67,"Mg":58.32,"Na":3.1,"K":1.1,"Fe":0.34,"ALK":164,"Cl":50,"NO3":4.0,"SO4":26.0,"F":0.35},"wqi":28.4,"rating":"GOOD"},{"id":3,"name":"Balrampur","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8654,"lon":76.3987,"data":{"pH":8.06,"TY":0.96,"TDS":335,"TH":60,"Ca":8.02,"Mg":9.72,"Na":2.8,"K":0.9,"Fe":0.42,"ALK":100,"Cl":12,"NO3":5.0,"SO4":59.0,"F":0.42},"wqi":22.1,"rating":"GOOD"},{"id":4,"name":"Bama Kulia","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9012,"lon":76.4456,"data":{"pH":8.4,"TY":0.78,"TDS":380,"TH":332,"Ca":28.85,"Mg":63.18,"Na":3.5,"K":1.3,"Fe":0.16,"ALK":164,"Cl":80,"NO3":2.0,"SO4":24.0,"F":0.373},"wqi":27.9,"rating":"GOOD"},{"id":5,"name":"Bela","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8743,"lon":76.4612,"data":{"pH":8.42,"TY":0.85,"TDS":375,"TH":368,"Ca":30.46,"Mg":70.95,"Na":3.2,"K":1.0,"Fe":0.03,"ALK":192,"Cl":66,"NO3":7.0,"SO4":22.0,"F":0.38},"wqi":29.1,"rating":"GOOD"},{"id":6,"name":"Bhaku Majra","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8934,"lon":76.3821,"data":{"pH":7.51,"TY":0.38,"TDS":282,"TH":168,"Ca":33.67,"Mg":20.41,"Na":2.5,"K":0.8,"Fe":0.04,"ALK":128,"Cl":23,"NO3":6.0,"SO4":41.0,"F":0.18},"wqi":19.8,"rating":"GOOD"},{"id":7,"name":"Bhallian","district":"Roopnagar","block":"Chamkaur Sahib","source":"Tube Well","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9156,"lon":76.4089,"data":{"pH":8.41,"TY":0.82,"TDS":377,"TH":112,"Ca":19.24,"Mg":15.55,"Na":3.8,"K":1.4,"Fe":0.85,"ALK":152,"Cl":75,"NO3":4.0,"SO4":45.0,"F":0.992},"wqi":31.2,"rating":"GOOD"},{"id":8,"name":"Dehar Mundia","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8567,"lon":76.4334,"data":{"pH":8.3,"TY":0.88,"TDS":389,"TH":380,"Ca":28.85,"Mg":74.84,"Na":3.3,"K":1.2,"Fe":0.33,"ALK":168,"Cl":60,"NO3":4.0,"SO4":44.0,"F":0.359},"wqi":30.2,"rating":"GOOD"},{"id":9,"name":"Dugri","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9234,"lon":76.3654,"data":{"pH":7.98,"TY":0.89,"TDS":320,"TH":228,"Ca":46.49,"Mg":27.21,"Na":2.9,"K":1.0,"Fe":0.18,"ALK":180,"Cl":34,"NO3":3.0,"SO4":35.0,"F":0.456},"wqi":24.3,"rating":"GOOD"},{"id":10,"name":"Fatehpur Bet","district":"Roopnagar","block":"Chamkaur Sahib","source":"Tube Well","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8412,"lon":76.4567,"data":{"pH":7.98,"TY":0.91,"TDS":392,"TH":384,"Ca":40.08,"Mg":69.01,"Na":3.1,"K":1.1,"Fe":0.11,"ALK":180,"Cl":40,"NO3":6.0,"SO4":17.0,"F":0.34},"wqi":29.8,"rating":"GOOD"},{"id":11,"name":"Ferozpur","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8789,"lon":76.3923,"data":{"pH":8.15,"TY":0.45,"TDS":223,"TH":60,"Ca":12.02,"Mg":7.29,"Na":2.4,"K":0.7,"Fe":0.55,"ALK":80,"Cl":24,"NO3":6.0,"SO4":69.0,"F":0.61},"wqi":18.9,"rating":"GOOD"},{"id":12,"name":"Jassran","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9078,"lon":76.4789,"data":{"pH":8.4,"TY":0.92,"TDS":445,"TH":312,"Ca":19.24,"Mg":64.15,"Na":4.1,"K":1.5,"Fe":0.27,"ALK":160,"Cl":122,"NO3":4.0,"SO4":28.0,"F":0.292},"wqi":32.1,"rating":"GOOD"},{"id":13,"name":"Bhago Majra","district":"Roopnagar","block":"Roopnagar","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":31.0123,"lon":76.5345,"data":{"pH":7.42,"TY":0.45,"TDS":299,"TH":116,"Ca":33.66,"Mg":7.77,"Na":2.1,"K":0.8,"Fe":0.1,"ALK":140,"Cl":18,"NO3":7.0,"SO4":48.0,"F":0.15},"wqi":17.3,"rating":"EXCELLENT"},{"id":14,"name":"Attari","district":"Roopnagar","block":"Roopnagar","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9756,"lon":76.5123,"data":{"pH":7.7,"TY":0.36,"TDS":308,"TH":128,"Ca":36.87,"Mg":8.74,"Na":2.5,"K":1.2,"Fe":0.01,"ALK":140,"Cl":20,"NO3":22.0,"SO4":38.0,"F":0.176},"wqi":21.4,"rating":"GOOD"},{"id":15,"name":"Beli","district":"Roopnagar","block":"Roopnagar","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9934,"lon":76.4867,"data":{"pH":7.68,"TY":0.66,"TDS":261,"TH":196,"Ca":48.09,"Mg":18.46,"Na":2.3,"K":1.0,"Fe":0.02,"ALK":128,"Cl":20,"NO3":26.0,"SO4":30.0,"F":0.163},"wqi":22.8,"rating":"GOOD"},{"id":16,"name":"Rambhag","district":"Roopnagar","block":"Morinda","source":"Tube Well","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.7534,"lon":76.5012,"data":{"pH":6.99,"TY":0.37,"TDS":395,"TH":260,"Ca":59.31,"Mg":27.21,"Na":3.4,"K":1.5,"Fe":0.356,"ALK":236,"Cl":30,"NO3":16.0,"SO4":36.0,"F":0.325},"wqi":26.7,"rating":"GOOD"},{"id":17,"name":"Kotla Surmukh Singh","district":"Roopnagar","block":"Chamkaur Sahib","source":"Tube Well","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8712,"lon":76.3845,"data":{"pH":8.1,"TY":0.81,"TDS":320,"TH":316,"Ca":56.11,"Mg":42.76,"Na":3.0,"K":1.2,"Fe":0.08,"ALK":180,"Cl":35,"NO3":6.0,"SO4":29.0,"F":0.45},"wqi":27.3,"rating":"GOOD"},{"id":18,"name":"Kotli","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8934,"lon":76.4678,"data":{"pH":8.06,"TY":0.87,"TDS":395,"TH":392,"Ca":43.28,"Mg":69.01,"Na":3.4,"K":1.2,"Fe":0.19,"ALK":160,"Cl":50,"NO3":3.0,"SO4":31.0,"F":0.408},"wqi":30.9,"rating":"GOOD"},{"id":19,"name":"Makowal","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9045,"lon":76.3567,"data":{"pH":8.12,"TY":0.78,"TDS":205,"TH":160,"Ca":16.03,"Mg":29.16,"Na":2.2,"K":0.7,"Fe":0.45,"ALK":70,"Cl":18,"NO3":5.0,"SO4":71.0,"F":0.23},"wqi":17.8,"rating":"EXCELLENT"},{"id":20,"name":"Makrona Khurd","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8578,"lon":76.4456,"data":{"pH":8.2,"TY":0.92,"TDS":394,"TH":384,"Ca":28.85,"Mg":75.81,"Na":3.3,"K":1.1,"Fe":0.47,"ALK":168,"Cl":60,"NO3":2.0,"SO4":42.0,"F":0.309},"wqi":29.4,"rating":"GOOD"},{"id":21,"name":"Kandola","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8456,"lon":76.489,"data":{"pH":7.8,"TY":0.96,"TDS":305,"TH":224,"Ca":41.68,"Mg":29.18,"Na":2.7,"K":0.9,"Fe":0.03,"ALK":200,"Cl":23,"NO3":8.0,"SO4":17.0,"F":0.31},"wqi":22.5,"rating":"GOOD"},{"id":22,"name":"Khokhar","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9189,"lon":76.4234,"data":{"pH":8.41,"TY":0.86,"TDS":382,"TH":372,"Ca":25.65,"Mg":74.84,"Na":3.2,"K":1.0,"Fe":0.02,"ALK":208,"Cl":27,"NO3":7.0,"SO4":21.0,"F":0.41},"wqi":29.7,"rating":"GOOD"},{"id":23,"name":"Jindapur","district":"Roopnagar","block":"Chamkaur Sahib","source":"Tube Well","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.9312,"lon":76.3756,"data":{"pH":8.36,"TY":0.67,"TDS":452,"TH":140,"Ca":25.65,"Mg":18.46,"Na":4.5,"K":1.8,"Fe":0.81,"ALK":84,"Cl":177,"NO3":9.0,"SO4":38.0,"F":0.204},"wqi":31.8,"rating":"GOOD"},{"id":24,"name":"Jatana","district":"Roopnagar","block":"Chamkaur Sahib","source":"Hand Pump","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":30.8623,"lon":76.4123,"data":{"pH":8.12,"TY":0.81,"TDS":372,"TH":368,"Ca":27.25,"Mg":72.9,"Na":3.0,"K":1.1,"Fe":0.41,"ALK":148,"Cl":34,"NO3":4.0,"SO4":24.0,"F":0.353},"wqi":28.8,"rating":"GOOD"},{"id":25,"name":"Panjoli","district":"Roopnagar","block":"Roopnagar","source":"Tube Well","date":"2018-03-01","season":"Pre-Monsoon","year":"2018","lat":31.0689,"lon":76.5123,"data":{"pH":7.96,"TY":0.22,"TDS":145,"TH":72,"Ca":11.22,"Mg":10.69,"Na":1.8,"K":0.6,"Fe":0.06,"ALK":60,"Cl":12,"NO3":29.0,"SO4":21.0,"F":0.251},"wqi":19.1,"rating":"GOOD"}];
+var vils=JSON.parse(localStorage.getItem('js_v5')||'null');
+if(!vils||vils.length<5){vils=JSON.parse(JSON.stringify(SEED));sv();}
+var pend=[],curId=null,prev='landing',actSeason='Pre-Monsoon',mf='all';
+var leafMap=null,markers=[],pieI=null,barI=null,lang='en';
+var users=JSON.parse(localStorage.getItem('js_u')||'null');
+var codes=JSON.parse(localStorage.getItem('js_c')||'null');
+var cu=JSON.parse(localStorage.getItem('js_cu')||'null');
+if(!users){users=[
+  {id:1,name:'Admin',username:'admin',password:'admin123',role:'admin',ico:'👑'},
+  {id:2,name:'District Monitor',username:'monitor',password:'mon123',role:'monitor',ico:'🗺️'},
+  {id:3,name:'Field Officer',username:'officer',password:'off123',role:'field',ico:'🔬'},
+  {id:4,name:'Public',username:'public',password:'pub123',role:'public',ico:'🏠'}
+];localStorage.setItem('js_u',JSON.stringify(users));}
+if(!codes){codes=[{code:'FIELD-2024',role:'field',expires:'2026-12-31'}];
+  localStorage.setItem('js_c',JSON.stringify(codes));}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function sv(){localStorage.setItem('js_v5',JSON.stringify(vils));}
+function g(id){return document.getElementById(id);}
+function qs(s){return document.querySelector(s);}
+function qsa(s){return document.querySelectorAll(s);}
+function toast(m){var t=g('toast');if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+function sp(m){g('progt').textContent=m||'Processing…';g('prog').classList.add('show');}
+function hp(){g('prog').classList.remove('show');}
+function sb(s){var c=(s||'').indexOf('Post')>=0?'post':'pre';return '<span class="sb '+c+'">'+(c==='post'?'🌧':'☀️')+' '+(s||'Pre')+'</span>';}
+function rc(r){return{EXCELLENT:'re',GOOD:'rg',FAIR:'rf',POOR:'rp',UNFIT:'ru'}[r]||'rp';}
+function col(r){return RC[r]?RC[r].c:'#888';}
+function rat(w){if(w>150)return'UNFIT';if(w>75)return'POOR';if(w>50)return'FAIR';if(w>25)return'GOOD';return'EXCELLENT';}
+
+// ── WQI ───────────────────────────────────────────────────────────
+function calcWQI(d){
+  var tot=0,det=[];
+  P.forEach(function(p){
+    var v=parseFloat(d[p.k])||0;
+    var ov=p.ph?(v<(p.bl||6.5)||v>p.b):v>p.b;
+    var pct=Math.min(100,(v/p.b)*100);
+    if(v>0)tot+=(p.w/SW)*(v/p.b)*100;
+    det.push({k:p.k,e:p.e,h:p.h,b:p.b,bl:p.bl,ph:p.ph,u:p.u,v:v,ov:ov,pct:pct});
+  });
+  tot=Math.round(tot*100)/100;
+  return{wqi:tot,rating:rat(tot),det:det};
+}
+
+function rndRes(eid,w,r){
+  var e=g(eid);if(!e)return;
+  var rc2=RC[r]||RC.EXCELLENT;
+  e.innerHTML='<div class="wqic '+rc(r)+'">'+
+    '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;opacity:.7;margin-bottom:5px">Water Quality Index — जल गुणवत्ता सूचकांक</div>'+
+    '<div class="wqi-n">'+w+'</div>'+
+    '<div class="wqi-r">'+(lang==='hi'?rc2.h:rc2.e)+'</div>'+
+    '<div class="wqi-h">'+(lang==='hi'?rc2.e:rc2.h)+'</div>'+
+    '<div class="wqi-a">'+(lang==='hi'?rc2.ha:rc2.ea)+'</div></div>';
+}
+
+function rndBrk(eid,det){
+  var e=g(eid);if(!e)return;
+  var ov=det.filter(function(d){return d.ov&&d.v>0;});
+  var h='<div style="padding:0 14px 5px"><div style="font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase">Parameter Breakdown'+
+    (ov.length?'<span style="color:var(--danger);margin-left:5px">'+ov.length+' exceeds BIS</span>':'')+'</div></div><div class="pbg">';
+  det.filter(function(d){return d.v>0;}).forEach(function(d){
+    h+='<div class="pbi'+(d.ov?' ov':'')+'">'+
+      '<div class="pbn">'+(lang==='hi'?d.h:d.e)+'</div>'+
+      '<div class="pbv'+(d.ov?' ov':'')+'">'+d.v+'<span style="font-size:8px;opacity:.6;margin-left:2px">'+d.u+'</span></div>'+
+      '<div class="pbb">BIS:'+(d.ph?'6.5–8.5':d.b)+' '+(d.ov?'⚠':'✓')+'</div>'+
+      '<div class="pbbar"><div class="pbf" style="width:'+d.pct+'%;background:'+(d.ov?'var(--danger)':'var(--accent)')+'"></div></div></div>';
+  });
+  e.innerHTML=h+'</div>';
+}
+
+function bldGrid(pfx,cont){
+  var e=g(cont);if(!e)return;
+  e.innerHTML=P.map(function(p){
+    return '<div><label class="fl">'+(lang==='hi'?p.h:p.e)+(p.u?' ('+p.u+')':'')+
+      '</label><input type="number" step="any" class="fi" id="'+pfx+p.k+
+      '" placeholder="'+(p.ph?'6.5–8.5':'0.00')+'">'+
+      '<div class="bh" id="bh'+pfx+p.k+'">BIS:'+(p.ph?'6.5–8.5':p.b)+' '+p.u+'</div></div>';
+  }).join('');
+  P.forEach(function(p){
+    var inp=g(pfx+p.k);
+    if(inp)(function(pp){inp.addEventListener('input',function(){
+      var v=parseFloat(this.value);if(isNaN(v))return;
+      var ov=pp.ph?(v<(pp.bl||6.5)||v>pp.b):v>pp.b;
+      this.className='fi'+(ov?' ov':'');
+      var bh=g('bh'+pfx+pp.k);
+      if(bh){bh.className='bh'+(ov?' ov':'');
+        bh.textContent=ov?'⚠ Exceeds BIS ('+(pp.ph?'6.5–8.5':pp.b)+' '+pp.u+')':'BIS:'+(pp.ph?'6.5–8.5':pp.b)+' '+pp.u;}
+    });})(p);
+  });
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────
+function doLogin(){
+  var u=(g('lu')||{value:''}).value.trim();
+  var p=(g('lp')||{value:''}).value;
+  var err=g('lerr');
+  if(!u||!p){if(err)err.textContent='Enter username and password';return;}
+  var found=null;
+  for(var i=0;i<users.length;i++){if(users[i].username===u&&users[i].password===p){found=users[i];break;}}
+  if(!found){if(err)err.textContent='Invalid username or password';return;}
+  if(err)err.textContent='';
+  cu=found;localStorage.setItem('js_cu',JSON.stringify(cu));
+  afterLogin();
+}
+
+function doJoin(){
+  var name=(g('cn')||{value:''}).value.trim();
+  var code=(g('cc')||{value:''}).value.trim().toUpperCase();
+  var err=g('cerr');
+  if(!name){if(err)err.textContent='Enter your name';return;}
+  var found=null;
+  for(var i=0;i<codes.length;i++){if(codes[i].code===code){found=codes[i];break;}}
+  if(!found){if(err)err.textContent='Invalid join code';return;}
+  if(found.expires&&new Date(found.expires)<new Date()){if(err)err.textContent='Code expired';return;}
+  if(err)err.textContent='';
+  var nu={id:Date.now(),name:name,username:'u'+Date.now(),
+    password:Math.random().toString(36).slice(2,8),
+    role:found.role,ico:'👤'};
+  users.push(nu);localStorage.setItem('js_u',JSON.stringify(users));
+  cu=nu;localStorage.setItem('js_cu',JSON.stringify(cu));
+  toast('Welcome '+name+'! Login: '+nu.username+'/'+nu.password);
+  afterLogin();
+}
+
+function afterLogin(){
+  var tb=g('tb');if(tb)tb.classList.remove('hide');
+  var un=g('userName');if(un)un.textContent=cu.name;
+  var ur=g('userRole');if(ur)ur.textContent=cu.role.toUpperCase();
+  var ui=g('userIco');if(ui)ui.textContent=cu.ico||'👤';
+  bldNavCards();go('landing');updAlerts();
+}
+
+function doLogout(){
+  if(!confirm('Logout?'))return;
+  cu=null;localStorage.removeItem('js_cu');
+  var tb=g('tb');if(tb)tb.classList.add('hide');
+  qsa('.page').forEach(function(p){p.classList.remove('act');});
+  var bn=g('bnav');if(bn)bn.className='';
+  var lp=g('loginPage');if(lp)lp.classList.add('act');
+  var lu=g('lu');if(lu)lu.value='';
+  var lpp=g('lp');if(lpp)lpp.value='';
+  var le=g('lerr');if(le)le.textContent='';
+}
+
+function bldNavCards(){
+  var el=g('navGrid');if(!el)return;
+  var role=cu?cu.role:'public';
+  var cards=[{i:'💧',t:'Quick Calculator',h:'त्वरित WQI जाँच',d:'Instant WQI from lab values',s:'public',c:'Check →'}];
+  if(role==='field'||role==='monitor'||role==='admin')
+    cards.push({i:'🔬',t:'Field Entry',h:'गाँव डेटा दर्ज करें',d:'Add villages & Excel upload',s:'field',c:'Field →'});
+  cards.push({i:'🔍',t:'Search',h:'गाँव खोजें',d:'Find by name, district, season, rating',s:'search',c:'Search →'});
+  cards.push({i:'🗺️',t:'Map View',h:'नक्शा देखें',d:'All villages on interactive map',s:'map',c:'Map →'});
+  if(role==='monitor'||role==='admin')
+    cards.push({i:'📊',t:'Dashboard',h:'जिला डैशबोर्ड',d:'Charts, trends, rankings, CSV export',s:'district',c:'Monitor →'});
+  cards.push({i:'🔔',t:'Alerts',h:'चेतावनी',d:'Unsafe water villages auto-flagged',s:'alert',c:'Alerts →'});
+  if(role==='admin')
+    cards.push({i:'⚙️',t:'Admin Panel',h:'प्रशासन',d:'Manage users & join codes',s:'admin',c:'Admin →'});
+  el.innerHTML=cards.map(function(c){
+    return '<div class="nc" data-s="'+c.s+'"><div class="nc-ico">'+c.i+'</div>'+
+      '<div class="nc-t">'+c.t+'</div><div class="nc-h">'+c.h+'</div>'+
+      '<div class="nc-d">'+c.d+'</div><div class="nc-c">'+c.c+'</div></div>';
+  }).join('');
+  qsa('.nc').forEach(function(card){card.addEventListener('click',function(){go(this.dataset.s);});});
+  var sv=g('statV');if(sv)sv.textContent=vils.length;
+}
+
+// ── CALC ──────────────────────────────────────────────────────────
+function calcPub(){
+  var d={};P.forEach(function(p){var e=g('p-'+p.k);d[p.k]=e?parseFloat(e.value)||0:0;});
+  var n=Object.keys(d).filter(function(k){return d[k]>0;}).length;
+  if(n<3){toast('Enter at least 3 parameters');return;}
+  var res=calcWQI(d);
+  rndRes('pubRes',res.wqi,res.rating);rndBrk('pubBrk',res.det);
+  var r=g('pubRes');if(r)r.scrollIntoView({behavior:'smooth'});
+}
+
+// ── SAVE ──────────────────────────────────────────────────────────
+function saveV(){
+  var nm=g('fv');if(!nm||!nm.value.trim()){toast('Enter village name');return;}
+  var ss=qs('input[name="fss"]:checked');
+  var d={};P.forEach(function(p){var e=g('f-'+p.k);d[p.k]=e?parseFloat(e.value)||0:0;});
+  if(Object.keys(d).filter(function(k){return d[k]>0;}).length<3){toast('Enter at least 3 parameters');return;}
+  var res=calcWQI(d);
+  vils.unshift({id:Date.now(),name:nm.value.trim(),
+    district:(g('fd')||{value:'—'}).value||'—',
+    block:(g('fb')||{value:'—'}).value||'—',
+    source:(g('fs')||{value:'Hand Pump'}).value,
+    date:(g('fdt')||{value:''}).value||new Date().toISOString().split('T')[0],
+    season:ss?ss.value:'Pre-Monsoon',
+    year:(g('fy')||{value:''}).value||'',
+    data:d,wqi:res.wqi,rating:res.rating,addedBy:cu?cu.name:''});
+  sv();toast('✓ '+nm.value.trim()+' — WQI: '+res.wqi);
+  clrF();stab('r');rndrList();updAlerts();bldNavCards();
+}
+function clrF(){
+  ['fv','fd','fb','fy'].forEach(function(id){var e=g(id);if(e)e.value='';});
+  var fdt=g('fdt');if(fdt)fdt.value='';
+  P.forEach(function(p){var e=g('f-'+p.k);if(e)e.value='';});
+}
+function stab(t){
+  var ts={m:'tm',u:'tu',r:'tr'};var cs={m:'tcm',u:'tcu',r:'tcr'};
+  Object.keys(ts).forEach(function(k){
+    var tab=g(ts[k]),tc=g(cs[k]);
+    if(tab)tab.className='tab'+(k===t?' act':'');
+    if(tc)tc.className='tc'+(k===t?' act':'');
+  });
+  if(t==='r')rndrList();
+}
+
+// ── LIST ──────────────────────────────────────────────────────────
+var actFilter='all';
+function rndrList(){
+  var q=(g('srch')||{value:''}).value.toLowerCase();
+  var f=vils.filter(function(v){
+    var mq=!q||(v.name||'').toLowerCase().indexOf(q)>=0||(v.block||'').toLowerCase().indexOf(q)>=0||(v.district||'').toLowerCase().indexOf(q)>=0;
+    var mf2=actFilter==='all'||(actFilter==='p'&&(v.season||'').indexOf('Pre')>=0)||(actFilter==='ps'&&(v.season||'').indexOf('Post')>=0);
+    return mq&&mf2;
+  });
+  var el=g('vList'),em=g('vEmp');if(!el)return;
+  if(!f.length){el.innerHTML='';if(em)em.classList.remove('hide');return;}
+  if(em)em.classList.add('hide');
+  el.innerHTML=f.map(function(v){
+    return '<div class="vli" data-id="'+v.id+'">'+
+      '<div class="vdot" style="background:'+col(v.rating)+'"></div>'+
+      '<div class="vi"><div class="vn">'+v.name+'</div>'+
+      '<div class="vs">'+v.district+' · '+v.block+' · '+sb(v.season)+'</div></div>'+
+      '<div style="text-align:right"><div class="vw" style="color:'+col(v.rating)+'">'+v.wqi+'</div>'+
+      '<div class="vrat" style="color:'+col(v.rating)+'">'+v.rating+'</div></div></div>';
+  }).join('');
+  el.querySelectorAll('.vli').forEach(function(r){
+    r.addEventListener('click',function(){prev='field';showDet(parseInt(this.dataset.id));});
+  });
+}
+function setFilter(f){
+  actFilter=f;
+  var fa=g('fa'),fp=g('fp'),fps=g('fps');
+  if(fa)fa.className='fchip'+(f==='all'?' fca':'');
+  if(fp)fp.className='fchip'+(f==='p'?' fcp':'');
+  if(fps)fps.className='fchip'+(f==='ps'?' fcps':'');
+  rndrList();
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────
+function rndrSearch(){
+  var q=(g('sQ')||{value:''}).value.toLowerCase();
+  var dq=(g('sD')||{value:''}).value.toLowerCase();
+  var sq=(g('sSn')||{value:'all'}).value;
+  var yq=(g('sY')||{value:''}).value.trim();
+  var rq=(g('sR')||{value:'all'}).value;
+  var f=vils.filter(function(v){
+    return(!q||(v.name||'').toLowerCase().indexOf(q)>=0||(v.block||'').toLowerCase().indexOf(q)>=0)&&
+      (!dq||(v.district||'').toLowerCase().indexOf(dq)>=0)&&
+      (sq==='all'||(v.season||'').indexOf(sq)>=0)&&
+      (!yq||(v.year||'')===yq)&&(rq==='all'||v.rating===rq);
+  });
+  var cnt=g('sCnt'),res=g('sRes');
+  if(cnt)cnt.textContent=f.length+' results';
+  if(!res)return;
+  if(!f.length){res.innerHTML='<div style="text-align:center;padding:25px;color:var(--muted)"><div style="font-size:26px;margin-bottom:8px">🔍</div><div>No results</div></div>';return;}
+  res.innerHTML=f.map(function(v){
+    return '<div class="vli" data-id="'+v.id+'" style="background:var(--card);border:1px solid var(--border);border-radius:9px;margin-bottom:7px">'+
+      '<div class="vdot" style="background:'+col(v.rating)+'"></div>'+
+      '<div class="vi"><div class="vn">'+v.name+'</div>'+
+      '<div class="vs">'+v.district+' · '+v.block+' · '+sb(v.season)+(v.year?' · '+v.year:'')+'</div></div>'+
+      '<div style="text-align:right"><div class="vw" style="color:'+col(v.rating)+'">'+v.wqi+'</div>'+
+      '<div class="vrat" style="color:'+col(v.rating)+'">'+v.rating+'</div></div></div>';
+  }).join('');
+  res.querySelectorAll('.vli').forEach(function(r){
+    r.addEventListener('click',function(){prev='search';showDet(parseInt(this.dataset.id));});
+  });
+}
+
+// ── DETAIL ────────────────────────────────────────────────────────
+function showDet(id){
+  var v=null;for(var i=0;i<vils.length;i++){if(vils[i].id===id){v=vils[i];break;}}
+  if(!v)return;curId=id;
+  var dn=g('detn');if(dn)dn.textContent=v.name;
+  var ds=g('dets');if(ds)ds.innerHTML=sb(v.season)+' '+(v.year||'');
+  var res=calcWQI(v.data);
+  rndRes('detRes',res.wqi,res.rating);rndBrk('detBrk',res.det);
+  var pair=null;
+  for(var i=0;i<vils.length;i++){
+    var x=vils[i];
+    if(x.name===v.name&&x.block===v.block&&x.id!==v.id&&(x.season||'')!==(v.season||'')){pair=x;break;}
+  }
+  var cEl=g('detCmp'),cT=g('detCmpT');
+  if(cEl&&cT&&pair){
+    cEl.classList.remove('hide');
+    var pre=(v.season||'').indexOf('Post')>=0?pair:v;
+    var post=(v.season||'').indexOf('Post')>=0?v:pair;
+    var preR=calcWQI(pre.data),postR=calcWQI(post.data);
+    var h='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:10px">'+
+      '<tr style="background:var(--bg2)"><th style="padding:6px 8px;text-align:left;color:var(--muted)">Param</th>'+
+      '<th style="padding:6px 8px;text-align:center;color:var(--pre)">☀️ Pre</th>'+
+      '<th style="padding:6px 8px;text-align:center;color:var(--post)">🌧 Post</th></tr>'+
+      '<tr><td style="padding:5px 8px;font-weight:700">WQI</td>'+
+      '<td style="padding:5px 8px;text-align:center;font-weight:800;color:'+col(preR.rating)+'">'+preR.wqi+'</td>'+
+      '<td style="padding:5px 8px;text-align:center;font-weight:800;color:'+col(postR.rating)+'">'+postR.wqi+'</td></tr>';
+    P.forEach(function(p,idx){
+      var pv=pre.data[p.k]||0,po=post.data[p.k]||0;
+      if(!pv&&!po)return;
+      var diff=po-pv;
+      var clr=Math.abs(diff)<0.01?'var(--text)':diff>0?'var(--danger)':'var(--good)';
+      h+='<tr style="background:'+(idx%2===0?'var(--card)':'var(--bg2)')+'">'+
+        '<td style="padding:4px 8px;color:var(--muted)">'+p.e+'</td>'+
+        '<td style="padding:4px 8px;text-align:center">'+pv+'</td>'+
+        '<td style="padding:4px 8px;text-align:center;color:'+clr+'">'+po+(Math.abs(diff)>0.01?diff>0?' ↑':' ↓':'')+'</td></tr>';
+    });
+    cT.innerHTML=h+'</table></div>';
+  } else if(cEl){cEl.classList.add('hide');}
+  go('detail');
+}
+
+function delV(){
+  if(!curId||!confirm('Delete?'))return;
+  vils=vils.filter(function(x){return x.id!==curId;});
+  sv();toast('Deleted');goBack();updAlerts();bldNavCards();
+}
+function shrV(){
+  var v=null;for(var i=0;i<vils.length;i++){if(vils[i].id===curId){v=vils[i];break;}}
+  if(!v)return;
+  var txt='JalScore Report
+Village: '+v.name+'
+WQI: '+v.wqi+' ('+v.rating+')
+Season: '+(v.season||'')+'
+Date: '+v.date;
+  if(navigator.share)navigator.share({title:'JalScore',text:txt}).catch(function(){});
+  else if(navigator.clipboard)navigator.clipboard.writeText(txt).then(function(){toast('Copied!');});
+  else toast('WQI: '+v.wqi+' ('+v.rating+')');
+}
+function pdfV(){
+  var v=null;for(var i=0;i<vils.length;i++){if(vils[i].id===curId){v=vils[i];break;}}
+  if(!v)return;
+  var res=calcWQI(v.data);var rc2=RC[res.rating]||RC.EXCELLENT;
+  var rows=P.map(function(p){
+    var val=v.data[p.k]||0;if(!val)return'';
+    var ov=p.ph?(val<(p.bl||6.5)||val>p.b):val>p.b;
+    return'<tr style="background:'+(ov?'#fff3f3':'white')+'">'+
+      '<td style="padding:5px 8px;border:1px solid #ddd">'+p.e+'</td>'+
+      '<td style="padding:5px 8px;border:1px solid #ddd;text-align:center">'+val+' '+p.u+'</td>'+
+      '<td style="padding:5px 8px;border:1px solid #ddd;text-align:center">'+(p.ph?'6.5–8.5':p.b)+'</td>'+
+      '<td style="padding:5px 8px;border:1px solid #ddd;text-align:center;color:'+(ov?'#e53':'#38a')+';font-weight:700">'+(ov?'⚠ EXCEEDS':'✓ OK')+'</td></tr>';
+  }).filter(Boolean).join('');
+  var w=window.open('','_blank');
+  if(!w){toast('Allow popups for PDF');return;}
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>JalScore — '+v.name+'</title>'+
+    '<style>body{font-family:Arial,sans-serif;max-width:800px;margin:0 auto;padding:20px;color:#222}'+
+    '.hdr{background:#031d3a;color:white;padding:18px;border-radius:8px;margin-bottom:16px}'+
+    '.wbox{padding:14px;border-radius:8px;text-align:center;margin:14px 0;color:white;background:'+rc2.c+'}'+
+    'table{width:100%;border-collapse:collapse;margin:12px 0}th{background:#031d3a;color:white;padding:6px 8px;font-size:11px}td{font-size:11px}'+
+    '@media print{.np{display:none}}</style></head><body>'+
+    '<div class="hdr"><h2 style="margin:0">💧 JalScore — जलस्कोर</h2><p style="margin:3px 0 0;font-size:11px;opacity:.8">Water Quality Index Report · BIS IS 10500:2012</p></div>'+
+    '<table style="background:#f9f9f9;border:1px solid #ddd"><tr><td style="padding:7px 10px"><b>Village:</b> '+v.name+'</td><td style="padding:7px 10px"><b>District:</b> '+v.district+'</td><td style="padding:7px 10px"><b>Block:</b> '+v.block+'</td></tr>'+
+    '<tr><td style="padding:7px 10px"><b>Date:</b> '+v.date+'</td><td style="padding:7px 10px"><b>Season:</b> '+(v.season||'')+'</td><td style="padding:7px 10px"><b>Source:</b> '+v.source+'</td></tr></table>'+
+    '<div class="wbox"><div style="font-size:11px;font-weight:700;opacity:.8;text-transform:uppercase">Water Quality Index</div>'+
+    '<div style="font-size:44px;font-weight:800;line-height:1">'+res.wqi+'</div>'+
+    '<div style="font-size:15px;font-weight:700;margin-top:3px">'+rc2.e+'</div>'+
+    '<div style="font-size:11px;margin-top:5px;opacity:.9">'+rc2.ea+'</div></div>'+
+    '<h3 style="color:#031d3a">Parameter Analysis (BIS IS 10500)</h3>'+
+    '<table><thead><tr><th>Parameter</th><th>Measured</th><th>BIS Limit</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<p style="font-size:10px;color:#888;text-align:center;margin-top:16px">JalScore · '+new Date().toLocaleDateString()+' · BIS IS 10500:2012</p>'+
+    '<div class="np" style="text-align:center;margin-top:14px"><button style="background:#031d3a;color:white;border:none;padding:9px 22px;border-radius:6px;cursor:pointer" onclick="window.print()">🖨️ Print / Save PDF</button></div>'+
+    '</body></html>');w.document.close();
+}
+
+// ── ALERTS ────────────────────────────────────────────────────────
+function getAlerts(){
+  var a=[];
+  vils.forEach(function(v){
+    if(v.rating==='FAIR'||v.rating==='POOR'||v.rating==='UNFIT')
+      a.push({v:v,msg:'WQI '+v.wqi+' ('+v.rating+') — not safe for drinking'});
+    ['F','NO3','Fe'].forEach(function(k){
+      var val=parseFloat(v.data[k])||0;if(!val)return;
+      var p=P.find(function(x){return x.k===k;});
+      if(p&&val>p.b*1.2)a.push({v:v,msg:p.e+'='+val+' exceeds BIS '+p.b+' '+p.u});
+    });
+  });
+  return a;
+}
+function updAlerts(){
+  var a=getAlerts(),c=g('alertCnt');if(c)c.textContent=a.length;
+}
+function rndrAlerts(){
+  var a=getAlerts(),el=g('aList'),em=g('aEmp');if(!el)return;
+  if(!a.length){el.innerHTML='';if(em)em.classList.remove('hide');return;}
+  if(em)em.classList.add('hide');
+  el.innerHTML=a.slice(0,30).map(function(al){
+    return '<div class="ali" data-id="'+al.v.id+'"><div style="font-size:17px">⚠️</div>'+
+      '<div><div class="ali-t">'+al.v.name+'</div>'+
+      '<div class="ali-s">'+al.v.block+' · '+al.v.district+' · '+sb(al.v.season)+'</div>'+
+      '<div class="ali-s">'+al.msg+'</div></div></div>';
+  }).join('');
+  el.querySelectorAll('.ali').forEach(function(r){
+    r.addEventListener('click',function(){prev='alert';showDet(parseInt(this.dataset.id));});
+  });
+}
+
+// ── MAP ───────────────────────────────────────────────────────────
+function initMap(){
+  var el=g('mapCont');if(!el||typeof L==='undefined')return;
+  if(!leafMap){
+    leafMap=L.map('mapCont',{center:[30.97,76.50],zoom:11});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(leafMap);
+  }
+  updMap();
+}
+function updMap(){
+  if(!leafMap||typeof L==='undefined')return;
+  markers.forEach(function(m){leafMap.removeLayer(m);});markers=[];
+  vils.forEach(function(v){
+    if(!v.lat||!v.lon)return;
+    if(mf==='pre'&&(v.season||'').indexOf('Pre')<0)return;
+    if(mf==='post'&&(v.season||'').indexOf('Post')<0)return;
+    if(mf==='al'&&v.rating!=='FAIR'&&v.rating!=='POOR'&&v.rating!=='UNFIT')return;
+    var c=col(v.rating);
+    var ico=L.divIcon({className:'',html:'<div style="width:13px;height:13px;border-radius:50%;background:'+c+';border:2px solid rgba(255,255,255,.5);box-shadow:0 0 6px '+c+'"></div>',iconSize:[13,13],iconAnchor:[6,6]});
+    var m=L.marker([v.lat,v.lon],{icon:ico});
+    m.bindPopup('<b style="color:'+c+'">'+v.name+'</b><br>WQI: <b style="color:'+c+'">'+v.wqi+'</b> ('+v.rating+')<br>'+v.block+' · '+v.district+'<br>'+(v.season||''));
+    m.addTo(leafMap);markers.push(m);
+  });
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────
+function rndDash(){
+  var f=vils.filter(function(v){return(v.season||'Pre-Monsoon').indexOf(actSeason.split('-')[0])>=0;});
+  var tot=f.length;var el=g('dtot');if(el)el.textContent=tot;
+  if(!tot){rndPie({});rndBar([]);rndDL([]);return;}
+  var sum=0;for(var i=0;i<f.length;i++)sum+=f[i].wqi;
+  var avg=(sum/tot).toFixed(1);
+  var safe=f.filter(function(v){return v.rating==='EXCELLENT'||v.rating==='GOOD';}).length;
+  var da=g('davg');if(da)da.textContent=avg;
+  var ds=g('dsafe');if(ds)ds.textContent=safe;
+  var da2=g('dact');if(da2)da2.textContent=tot-safe;
+  var cnt={};f.forEach(function(v){cnt[v.rating]=(cnt[v.rating]||0)+1;});
+  rndPie(cnt);rndBar(f.slice().sort(function(a,b){return b.wqi-a.wqi;}).slice(0,12));rndDL(f);
+}
+var CO={EXCELLENT:'#66bb6a',GOOD:'#29b6f6',FAIR:'#ffa726',POOR:'#ef5350',UNFIT:'#b71c1c'};
+function rndPie(cnt){
+  var c=g('pieC');if(!c)return;if(pieI){try{pieI.destroy();}catch(e){}}
+  var L2=Object.keys(cnt).filter(function(k){return cnt[k]>0;});
+  if(!L2.length)return;
+  try{pieI=new Chart(c,{type:'doughnut',data:{labels:L2,datasets:[{data:L2.map(function(l){return cnt[l];}),backgroundColor:L2.map(function(l){return CO[l]||'#888';}),borderWidth:2,borderColor:'#0a2d52'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#90caf9',font:{size:10}}}}}});}catch(e){}
+}
+function rndBar(data){
+  var c=g('barC');if(!c)return;if(barI){try{barI.destroy();}catch(e){}}
+  if(!data.length)return;
+  try{barI=new Chart(c,{type:'bar',data:{labels:data.map(function(v){var n=v.name;return n.length>11?n.slice(0,11)+'…':n;}),datasets:[{data:data.map(function(v){return v.wqi;}),backgroundColor:data.map(function(v){return CO[v.rating]||'#888';}),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#90caf9',font:{size:8}}},y:{ticks:{color:'#90caf9',font:{size:8}}}}}});}catch(e){}
+}
+function rndDL(data){
+  var el=g('distList');if(!el)return;
+  if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:14px;color:var(--muted);font-size:11px">No data for this season. Add villages in Field Entry.</div>';return;}
+  el.innerHTML=data.slice().sort(function(a,b){return b.wqi-a.wqi;}).map(function(v){
+    return '<div class="vli" data-id="'+v.id+'">'+
+      '<div class="vdot" style="background:'+col(v.rating)+'"></div>'+
+      '<div class="vi"><div class="vn">'+v.name+'</div><div class="vs">'+v.district+' · '+v.block+'</div></div>'+
+      '<div style="text-align:right"><div class="vw" style="color:'+col(v.rating)+'">'+v.wqi+'</div>'+
+      '<div class="vrat" style="color:'+col(v.rating)+'">'+v.rating+'</div></div></div>';
+  }).join('');
+  el.querySelectorAll('.vli').forEach(function(r){
+    r.addEventListener('click',function(){prev='district';showDet(parseInt(this.dataset.id));});
+  });
+}
+function expCSV(){
+  if(!vils.length){toast('No data');return;}
+  var h=['Village','District','Block','Source','Date','Season','Year'].concat(P.map(function(p){return p.e;})).concat(['WQI','Rating']);
+  var rows=vils.map(function(v){return['"'+v.name+'"',v.district,v.block,v.source,v.date,v.season||'',v.year||''].concat(P.map(function(p){return v.data[p.k]||0;})).concat([v.wqi,v.rating]);});
+  var csv=[h].concat(rows).map(function(r){return r.join(',');}).join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='JalScore_Export.csv';a.click();toast('CSV downloaded!');
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────────
+function handleFile(file){
+  if(!file)return;sp('Processing…');
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'array'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var rows=XLSX.utils.sheet_to_json(ws,{defval:0});
+      if(!rows.length){hp();toast('No data found');return;}
+      var CM={Village:'name',village:'name',District:'district',district:'district',Block:'block',block:'block',
+        Source:'source',source:'source',Date:'date',date:'date',Season:'season',season:'season',Year:'year',year:'year',
+        pH:'pH',ph:'pH',Turbidity:'TY',TY:'TY',TDS:'TDS',tds:'TDS',TH:'TH','Total Hardness':'TH',Hardness:'TH',
+        Ca:'Ca',Calcium:'Ca',Mg:'Mg',Magnesium:'Mg',Na:'Na',Sodium:'Na',K:'K',Potassium:'K',
+        Fe:'Fe',Iron:'Fe',ALK:'ALK',Alkalinity:'ALK',HCO3:'ALK',Cl:'Cl',Chloride:'Cl',
+        NO3:'NO3',Nitrate:'NO3',SO4:'SO4',Sulphate:'SO4',Sulfate:'SO4',F:'F',Fluoride:'F'};
+      pend=rows.map(function(row,i){
+        var m={};Object.keys(row).forEach(function(k){if(CM[k])m[CM[k]]=row[k];});
+        var d={};P.forEach(function(p){d[p.k]=parseFloat(m[p.k])||0;});
+        var res=calcWQI(d);
+        return{id:Date.now()+i,name:m.name||'Village '+(i+1),district:m.district||'Unknown',block:m.block||'Unknown',
+          source:m.source||'Unknown',date:m.date||new Date().toISOString().split('T')[0],
+          season:m.season||'Pre-Monsoon',year:m.year||'',data:d,wqi:res.wqi,rating:res.rating};
+      });
+      hp();
+      var pp=g('upPrev');if(pp)pp.classList.remove('hide');
+      var pt=g('prevT');if(pt)pt.textContent=pend.length+' villages found';
+      var ps=g('prevS');if(ps)ps.textContent='from '+file.name;
+      var pr=g('prevRows');
+      if(pr)pr.innerHTML=pend.slice(0,15).map(function(v,i){
+        return'<div class="prow"><span style="color:var(--muted);font-weight:700;width:20px;flex-shrink:0">'+(i+1)+'</span>'+
+          '<span style="flex:1;font-weight:600">'+v.name+'<span style="font-size:9px;color:var(--muted);display:block">'+v.block+' · '+sb(v.season)+'</span></span>'+
+          '<span style="font-size:12px;font-weight:800;color:'+col(v.rating)+'">'+v.wqi+'</span></div>';
+      }).join('')+(pend.length>15?'<div style="text-align:center;padding:5px;font-size:9px;color:var(--muted)">…and '+(pend.length-15)+' more</div>':'');
+    }catch(err){hp();toast('Error: '+err.message);}
+  };reader.readAsArrayBuffer(file);
+}
+function confUp(){
+  if(!pend.length)return;sp('Importing…');
+  setTimeout(function(){
+    pend.forEach(function(v){vils.unshift(v);});sv();hp();
+    var pp=g('upPrev');if(pp)pp.classList.add('hide');
+    var pr=g('prevRows');if(pr)pr.innerHTML='';
+    toast('✓ '+pend.length+' villages imported!');pend=[];
+    stab('r');rndrList();updAlerts();bldNavCards();
+  },400);
+}
+function dlTpl(){
+  if(typeof XLSX==='undefined'){toast('Loading…');return;}
+  var wb=XLSX.utils.book_new();
+  var ws=XLSX.utils.aoa_to_sheet([
+    ['Village','District','Block','Source','Date','Season','Year','pH','Turbidity','TDS','TH','Ca','Mg','Na','K','Fe','ALK','Cl','NO3','SO4','F'],
+    ['Sample Village','Roopnagar','Chamkaur Sahib','Hand Pump','2024-03-01','Pre-Monsoon','2024',7.5,0.5,300,200,50,25,3,1,0.3,150,30,5,40,0.5]
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws,'JalScore Template');
+  XLSX.writeFile(wb,'JalScore_Template.xlsx');toast('Template downloaded!');
+}
+
+// ── ADMIN ─────────────────────────────────────────────────────────
+function createUser(){
+  var nm=g('anm'),u=g('au'),p=g('ap'),r=g('ar');
+  if(!nm||!u||!p||!r)return;
+  if(!nm.value.trim()||!u.value.trim()||!p.value.trim()){toast('Fill all fields');return;}
+  for(var i=0;i<users.length;i++){if(users[i].username===u.value.trim()){toast('Username exists');return;}}
+  var icos={field:'🔬',monitor:'🗺️',public:'🏠'};
+  users.push({id:Date.now(),name:nm.value.trim(),username:u.value.trim(),password:p.value.trim(),role:r.value,ico:icos[r.value]||'👤'});
+  localStorage.setItem('js_u',JSON.stringify(users));
+  toast('✓ Created: '+u.value+'/'+p.value);nm.value='';u.value='';p.value='';rndrUsers();
+}
+function genCode(){
+  var r=g('crr'),exp=g('cre');if(!r)return;
+  var pf={field:'FIELD',monitor:'MON',public:'PUB'};
+  var code=(pf[r.value]||'USER')+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
+  codes.push({code:code,role:r.value,expires:exp?exp.value:''});
+  localStorage.setItem('js_c',JSON.stringify(codes));
+  var co=g('codeOut'),cv=g('codeVal');
+  if(co)co.classList.remove('hide');if(cv)cv.textContent=code;toast('Code: '+code);
+}
+function rndrUsers(){
+  var el=g('uList');if(!el)return;
+  var cs={admin:'var(--danger)',monitor:'var(--accent)',field:'var(--warn)',public:'var(--good)'};
+  el.innerHTML=users.map(function(u){
+    return'<div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid rgba(21,101,192,.25)">'+
+      '<span style="font-size:18px;width:28px;flex-shrink:0">'+u.ico+'</span>'+
+      '<div style="flex:1"><div style="font-size:12px;font-weight:700">'+u.name+'</div>'+
+      '<div style="font-size:9px;color:var(--muted)">@'+u.username+'</div></div>'+
+      '<span style="font-size:9px;font-weight:700;color:'+(cs[u.role]||'#888')+';text-transform:uppercase">'+u.role+'</span></div>';
+  }).join('');
+}
+
+// ── LANGUAGE ──────────────────────────────────────────────────────
+var TXT={
+  en:{lb:'हिंदी'},
+  hi:{lb:'English'}
+};
+function applyLang(){
+  var lb=g('langBtn');if(lb){lb.textContent=lang==='en'?'हिंदी':'English';lb.className='tbtn'+(lang==='hi'?' hl':'');}
+  bldGrid('p-','pubGrid');bldGrid('f-','fldGrid');
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+function go(s){
+  qsa('.page').forEach(function(p){p.classList.remove('act');});
+  var pages={landing:'landingPage',public:'publicPage',field:'fieldPage',search:'searchPage',
+    map:'mapPage',district:'districtPage',alert:'alertPage',detail:'detailPage',admin:'adminPage'};
+  var el=g(pages[s]);if(!el)return;el.classList.add('act');
+  var bn=g('bnav');if(bn)bn.className=(s!=='landing'&&cu)?'show':'';
+  qsa('.ni').forEach(function(x){x.classList.remove('act');});
+  var nm={public:'ni1',field:'ni2',search:'ni3',map:'ni4',district:'ni5'};
+  if(nm[s]){var ni=g(nm[s]);if(ni)ni.classList.add('act');}
+  window.scrollTo(0,0);
+  if(s==='public')bldGrid('p-','pubGrid');
+  if(s==='field'){bldGrid('f-','fldGrid');var fdt=g('fdt');if(fdt)fdt.value=new Date().toISOString().split('T')[0];var fy=g('fy');if(fy)fy.value=new Date().getFullYear();rndrList();}
+  if(s==='district')rndDash();
+  if(s==='search')rndrSearch();
+  if(s==='alert')rndrAlerts();
+  if(s==='admin')rndrUsers();
+  if(s==='map')setTimeout(function(){if(typeof L!=='undefined')initMap();else toast('Map needs internet');},200);
+}
+function goBack(){go(prev||'landing');}
+
+// ── INIT ──────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',function(){
+  // Login
+  var lt1=g('lt1'),lt2=g('lt2'),lf1=g('lf1'),lf2=g('lf2');
+  if(lt1)lt1.addEventListener('click',function(){lt1.className='ltab act';lt2.className='ltab';lf1.classList.remove('hide');lf2.classList.add('hide');});
+  if(lt2)lt2.addEventListener('click',function(){lt2.className='ltab act';lt1.className='ltab';lf2.classList.remove('hide');lf1.classList.add('hide');});
+  var lp2=g('lp');if(lp2)lp2.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+  var lBtn=g('loginBtn');if(lBtn)lBtn.addEventListener('click',doLogin);
+  var jBtn=g('joinBtn');if(jBtn)jBtn.addEventListener('click',doJoin);
+  // Top bar
+  var logo=g('logoBtn');if(logo)logo.addEventListener('click',function(){go('landing');});
+  var lang2=g('langBtn');if(lang2)lang2.addEventListener('click',function(){lang=lang==='en'?'hi':'en';applyLang();});
+  var upill=g('userPill');if(upill)upill.addEventListener('click',doLogout);
+  var aBtn=g('alertBtn');if(aBtn)aBtn.addEventListener('click',function(){prev='landing';go('alert');});
+  // Backs
+  var bm={pubBack:'landing',fieldBack:'landing',searchBack:'landing',mapBack:'landing',distBack:'landing',alertBack:'landing',adminBack:'landing',detBack:null};
+  Object.keys(bm).forEach(function(k){var e=g(k);if(!e)return;e.addEventListener('click',function(){bm[k]===null?goBack():go(bm[k]);});});
+  // Calc
+  var cb=g('calcBtn');if(cb)cb.addEventListener('click',calcPub);
+  // Field tabs
+  var tm=g('tm'),tu=g('tu'),tr2=g('tr');
+  if(tm)tm.addEventListener('click',function(){stab('m');});
+  if(tu)tu.addEventListener('click',function(){stab('u');});
+  if(tr2)tr2.addEventListener('click',function(){stab('r');});
+  var sb2=g('saveBtn');if(sb2)sb2.addEventListener('click',saveV);
+  var cb2=g('clrBtn');if(cb2)cb2.addEventListener('click',clrF);
+  var sr=g('srch');if(sr)sr.addEventListener('input',rndrList);
+  var fa=g('fa'),fp=g('fp'),fps=g('fps');
+  if(fa)fa.addEventListener('click',function(){setFilter('all');});
+  if(fp)fp.addEventListener('click',function(){setFilter('p');});
+  if(fps)fps.addEventListener('click',function(){setFilter('ps');});
+  // Upload
+  var fi=g('fileInp');if(fi)fi.addEventListener('change',function(){if(this.files[0])handleFile(this.files[0]);});
+  var dz=g('dz');
+  if(dz){dz.addEventListener('dragover',function(e){e.preventDefault();this.style.borderColor='var(--accent)';});
+    dz.addEventListener('dragleave',function(){this.style.borderColor='';});
+    dz.addEventListener('drop',function(e){e.preventDefault();this.style.borderColor='';if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});}
+  var cu2=g('cancelUp');if(cu2)cu2.addEventListener('click',function(){pend=[];var pp=g('upPrev');if(pp)pp.classList.add('hide');var pr=g('prevRows');if(pr)pr.innerHTML='';});
+  var ib=g('importBtn');if(ib)ib.addEventListener('click',confUp);
+  var dt=g('dlTpl');if(dt)dt.addEventListener('click',dlTpl);
+  // Search
+  ['sQ','sD','sSn','sY','sR'].forEach(function(id){var e=g(id);if(!e)return;e.addEventListener('input',rndrSearch);e.addEventListener('change',rndrSearch);});
+  var sc=g('sClear');if(sc)sc.addEventListener('click',function(){['sQ','sD','sY'].forEach(function(id){var e=g(id);if(e)e.value='';});var s1=g('sSn');if(s1)s1.value='all';var s2=g('sR');if(s2)s2.value='all';rndrSearch();});
+  // Map filters
+  var mfs={mfa:'all',mfp:'pre',mfps:'post',mfal:'al'};
+  Object.keys(mfs).forEach(function(id){var e=g(id);if(!e)return;
+    e.addEventListener('click',function(){mf=mfs[id];
+      Object.keys(mfs).forEach(function(bid){var be=g(bid);if(be)be.className='mfb'+(bid===id?' act':'');});
+      updMap();});
+  });
+  // District
+  var dp=g('dpre'),dps=g('dpost');
+  if(dp)dp.addEventListener('click',function(){actSeason='Pre-Monsoon';dp.className='stgl ap';if(dps)dps.className='stgl';rndDash();});
+  if(dps)dps.addEventListener('click',function(){actSeason='Post-Monsoon';if(dp)dp.className='stgl';dps.className='stgl aps';rndDash();});
+  var eb=g('expBtn');if(eb)eb.addEventListener('click',expCSV);
+  // Detail
+  var delB=g('delBtn');if(delB)delB.addEventListener('click',delV);
+  var shrB=g('shrBtn');if(shrB)shrB.addEventListener('click',shrV);
+  var pdfB=g('pdfBtn');if(pdfB)pdfB.addEventListener('click',pdfV);
+  // Admin
+  var crB=g('createBtn');if(crB)crB.addEventListener('click',createUser);
+  var gB=g('genBtn');if(gB)gB.addEventListener('click',genCode);
+  // Bottom nav
+  var navM={ni1:'public',ni2:'field',ni3:'search',ni4:'map',ni5:'district'};
+  Object.keys(navM).forEach(function(k){var e=g(k);if(!e)return;e.addEventListener('click',function(){go(navM[k]);});});
+  // Auto-login
+  if(cu){afterLogin();}else{applyLang();}
+});
+
+})();
+</script>
+</body>
+</html>
